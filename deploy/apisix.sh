@@ -28,8 +28,11 @@ apisix_deploy() {
   body='{"cert": "'$_ccert'", "key": "'$_ckey'", "sni": ["'$_cdomain'"]}'
 
   export _H1="X-API-Key: $APISIX_KEY"
-
-  response = $(_post "$body" "$APISIX_HOST/apisix/admin/ssl/1" 0 PUT)
+  id_digest=$APISIX_SSL_ID
+  if [ -z "$APISIX_SSL_ID"];then
+  id_digest = $(echo $_cdomain | _base64)
+  fi
+  response = $(_post "$body" "$APISIX_HOST/apisix/admin/ssl/$id_digest" 0 PUT)
   if ! _contains "$response" "\"status_code\": 200" >/dev/null; then
     _err "Post crete ssl failed: $response"
     return 1

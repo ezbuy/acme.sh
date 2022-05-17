@@ -12,7 +12,7 @@ apisix_deploy() {
   _info "Deploying cert to apisix"
   if [ -z "$APISIX_HOST" ]; then
     _debug "APISIX_HOST not set ,using default: http://localhost:9080"
-	APISIX_HOST="http://localhost:9080"
+    APISIX_HOST="http://localhost:9080"
   fi
 
   _debug _cdomain "$_cdomain"
@@ -21,18 +21,23 @@ apisix_deploy() {
   _debug _cca "$_cca"
   _debug _cfullchain "$_cfullchain"
 
-  if [ -z "$APISIX_KEY"]; then
+  if [ -z "$APISIX_KEY" ]; then
 	_err "APISIX_KEY not set"
 	return 1
   fi
-  body='{"cert": "'$_ccert'", "key": "'$_ckey'", "sni": ["'$_cdomain'"]}'
+  cert_data=$(cat "$_ccert" | sed 's/\//\\\//g')
+  key_data=$(cat "$_ckey" | sed 's/\//\\\//g')
+  _debug cert_data
+  _debug key_data
+  body='{"cert": "'$cert_data'", "key": "'$key_data'", "sni": ["'$_cdomain'"]}'
 
   export _H1="X-API-Key: $APISIX_KEY"
-  id_digest=$APISIX_SSL_ID
-  if [ -z "$APISIX_SSL_ID"];then
-  id_digest = $(echo $_cdomain | _base64)
+  id_digest="$APISIX_SSL_ID"
+  if [ -z "$APISIX_SSL_ID" ];then
+  id_digest=$(echo $_cdomain | _base64)
   fi
-  response = $(_post "$body" "$APISIX_HOST/apisix/admin/ssl/$id_digest" 0 PUT)
+  _debug body "$body"
+  response=$(_post "$body" "$APISIX_HOST/apisix/admin/ssl/$id_digest" 0 PUT)
   if ! _contains "$response" "\"status_code\": 200" >/dev/null; then
     _err "Post crete ssl failed: $response"
     return 1
